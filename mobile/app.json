@@ -1,0 +1,17 @@
+{
+  "expo": {
+    "name": "Chemzo Plaza",
+    "slug": "chemzo-plaza-shop",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "primaryColor": "#17171a",
+    "scheme": "chemzoplaza",
+    "android": {
+      "package": "com.chemzoplaza.shop",
+      "adaptiveIcon": {
+        "backgroundColor": "#17171a"
+      }
+    },
+    "plugins": ["expo-secure-store"]
+  }
+}

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { unstable_rethrow } from "next/navigation";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
-import { createClient } from "@/lib/supabase/server";
+import { getApiSupabase } from "@/lib/supabase/api-auth";
 import type { CartItem } from "@/lib/types";
 
 type CartItemRow = {
@@ -20,14 +20,14 @@ type CartItemRow = {
 /**
  * Server-side cart for signed-in users. Guests keep their cart in localStorage
  * on the client (see CartProvider); this route is a no-op for them.
+ *
+ * Auth: web sends cookies; the Expo mobile app sends
+ * `Authorization: Bearer <supabase_access_token>` (see api-auth.ts).
  */
-export async function GET() {
+export async function GET(request: Request) {
   if (!isSupabaseConfigured) return NextResponse.json({ items: [] });
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { supabase, user } = await getApiSupabase(request);
   if (!user) return NextResponse.json({ items: [] });
 
   const { data: cart } = await supabase
@@ -69,10 +69,7 @@ export async function GET() {
 export async function PUT(request: Request) {
   if (!isSupabaseConfigured) return NextResponse.json({ ok: true, persisted: false });
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { supabase, user } = await getApiSupabase(request);
   if (!user) return NextResponse.json({ ok: true, persisted: false });
 
   let body: unknown;

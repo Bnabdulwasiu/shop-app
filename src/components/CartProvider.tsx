@@ -146,6 +146,59 @@ export function CartProvider({ children }: { children: ReactNode }) {
     if (userId) void saveToServer(items);
   }, [items, ready, userId]);
 
+  // Realtime: when another device (e.g. the Expo mobile app) changes this
+  // user's cart rows, refetch so the web cart updates instantly without a
+  // manual refresh. Poll as fallback in case Realtime is disabled.
+  useEffect(() => {
+    if (!ready || !userId || !isSupabaseConfigured) return;
+    let cancelled = false;
+    let poll: ReturnType<typeof setInterval> | null = null;
+
+    async function refetch() {
+      try {
+        const res = await fetch("/api/cart", { cache: "no-store" });
+        if (!res.ok || cancelled) return;
+        const payload = (await res.json()) as { items?: CartItem[] };
+        // Avoid echo loops: only replace if the server cart actually differs.
+        setItems((prev) => {
+          const next = payload.items ?? [];
+          return JSON.stringify(prev) === JSON.stringify(next) ? prev : next;
+        });
+      } catch {
+        /* offline — keep local cart */
+      }
+    }
+
+    try {
+      const supabase = createClient();
+      const channel = supabase
+        .channel(`cart:${userId}`)
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "cart_items" },
+          () => void refetch()
+        )
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "carts" },
+          () => void refetch()
+        )
+        .subscribe();
+      poll = setInterval(() => void refetch(), 15000);
+      return () => {
+        cancelled = true;
+        if (poll) clearInterval(poll);
+        void supabase.removeChannel(channel);
+      };
+    } catch {
+      poll = setInterval(() => void refetch(), 15000);
+      return () => {
+        cancelled = true;
+        if (poll) clearInterval(poll);
+      };
+    }
+  }, [ready, userId]);
+
   const addItem = useCallback((product: Product, quantity = 1) => {
     setItems((prev) => {
       const existing = prev.find((item) => item.productId === product.id);

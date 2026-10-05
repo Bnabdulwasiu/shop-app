@@ -155,6 +155,32 @@ create policy "Users manage their own cart items"
   );
 
 -- ---------------------------------------------------------------------------
+-- Realtime for cross-device cart sync (Lesson 3 mobile app).
+-- Web writes + mobile reads (and vice versa) must arrive instantly, so the
+-- cart tables are added to the supabase_realtime publication. The Expo app
+-- subscribes with `supabase.channel(...).on('postgres_changes', ...)` and the
+-- web CartProvider does the same. Safe to re-run.
+-- Run this file (or at least this block) in Supabase SQL Editor.
+-- ---------------------------------------------------------------------------
+do $$
+begin
+  if not exists (
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'carts'
+  ) then
+    alter publication supabase_realtime add table public.carts;
+  end if;
+
+  if not exists (
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'cart_items'
+  ) then
+    alter publication supabase_realtime add table public.cart_items;
+  end if;
+end
+$$;
+
+-- ---------------------------------------------------------------------------
 -- orders / order_items
 -- Written ONLY by the server using the service-role key, so there are no
 -- INSERT/UPDATE policies on purpose — RLS blocks all public writes.

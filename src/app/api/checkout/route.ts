@@ -3,8 +3,8 @@ import { unstable_rethrow } from "next/navigation";
 import { sendOrderConfirmationEmail } from "@/lib/email";
 import { shippingForSubtotal } from "@/lib/money";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { isAdminConfigured, isSupabaseConfigured } from "@/lib/supabase/config";
-import { createClient } from "@/lib/supabase/server";
+import { isAdminConfigured } from "@/lib/supabase/config";
+import { getApiSupabase } from "@/lib/supabase/api-auth";
 import type { CheckoutPayload } from "@/lib/types";
 import { validateCheckoutPayload } from "@/lib/validation";
 
@@ -73,18 +73,14 @@ export async function POST(request: Request) {
   }
 
   // Who is checking out (optional — guests are welcome).
+  // Web sends cookies; the Expo app sends `Authorization: Bearer <token>`.
   let userId: string | null = null;
-  if (isSupabaseConfigured) {
-    try {
-      const supabase = await createClient();
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      userId = user?.id ?? null;
-    } catch (error) {
-      unstable_rethrow(error);
-      userId = null;
-    }
+  try {
+    const { user } = await getApiSupabase(request);
+    userId = user?.id ?? null;
+  } catch (error) {
+    unstable_rethrow(error);
+    userId = null;
   }
 
   const admin = createAdminClient();

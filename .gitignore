@@ -41,3 +41,7 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 build.log
+
+# expo mobile app (Lesson 3) — own deps/cache, never commit
+mobile/node_modules/
+mobile/.expo/
