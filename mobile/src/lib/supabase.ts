@@ -12,9 +12,10 @@ export function getSupabase(): SupabaseClient {
     client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       auth: {
         storage: {
-          getItem: (key) => SecureStore.getItemAsync(key),
-          setItem: (key, value) => SecureStore.setItemAsync(key, value),
-          removeItem: (key) => SecureStore.deleteItemAsync(key),
+          getItem: (key: string) => SecureStore.getItemAsync(key),
+          setItem: (key: string, value: string) =>
+            SecureStore.setItemAsync(key, value),
+          removeItem: (key: string) => SecureStore.deleteItemAsync(key),
         },
         autoRefreshToken: true,
         persistSession: true,
